@@ -1,6 +1,10 @@
 FROM ubuntu:16.04
 
-MAINTAINER Gildásio Júnior (gjuniioor@protonmail.com)
+# Env variable for the project root dir
+ENV PROJECT_ROOT /var/www/html
+ENV DEBIAN_FRONTEND=noninteractive
+
+MAINTAINER Leandro Ponce (leandro.ponce@improvein.com/ponce.leandro@outlook.com)
 
 # update package list
 RUN apt-get update
@@ -27,27 +31,16 @@ RUN apt-get install -y unixodbc-dev-utf16
 
 # install driver sqlsrv
 RUN pecl install sqlsrv
-RUN echo "extension=sqlsrv.so" >> /etc/php/7.0/apache2/php.ini
 RUN pecl install pdo_sqlsrv
-RUN echo "extension=pdo_sqlsrv.so" >> /etc/php/7.0/apache2/php.ini
 
 # load driver sqlsrv
-RUN echo "extension=/usr/lib/php/20151012/sqlsrv.so" >> /etc/php/7.0/apache2/php.ini
-RUN echo "extension=/usr/lib/php/20151012/pdo_sqlsrv.so" >> /etc/php/7.0/apache2/php.ini
-RUN echo "extension=/usr/lib/php/20151012/sqlsrv.so" >> /etc/php/7.0/cli/php.ini
-RUN echo "extension=/usr/lib/php/20151012/pdo_sqlsrv.so" >> /etc/php/7.0/cli/php.ini
-
-# install composer
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-RUN php -r "if (hash_file('SHA384', 'composer-setup.php') === '669656bab3166a7aff8a7506b8cb2d1c292f042046c5a994c43155c0be6190fa0355160742ab2e1c88d40d5be660b410') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-RUN php composer-setup.php
-RUN php -r "unlink('composer-setup.php');"
-RUN mv composer.phar /usr/local/bin/composer
+RUN echo "extension=pdo_sqlsrv.so" >> /etc/php/7.0/apache2/conf.d/30-pdo_sqlsrv.ini
+RUN echo "extension=sqlsrv.so" >> /etc/php/7.0/apache2/conf.d/20-sqlsrv.ini
+RUN echo "extension=pdo_sqlsrv.so" >> /etc/php/7.0/cli/conf.d/30-pdo_sqlsrv.ini
+RUN echo "extension=sqlsrv.so" >> /etc/php/7.0/cli/conf.d/20-sqlsrv.ini
 
 # install ODBC Driver
-RUN ACCEPT_EULA=Y apt-get install -y msodbcsql
-RUN apt-get install -y mssql-tools
-RUN apt-get install -y unixodbc-dev
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql mssql-tools unixodbc-dev
 RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile
 RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
 RUN exec bash
@@ -55,8 +48,14 @@ RUN exec bash
 # install locales
 RUN apt-get install -y locales && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
-EXPOSE 80
+# Custom configurations
+COPY apache2.conf /etc/apache2/apache2.conf
 
-WORKDIR /var/www/html/
+# Permissions on app directories
+RUN usermod -u 1000 www-data
+
+WORKDIR $PROJECT_ROOT
+
+EXPOSE 80
 
 CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]

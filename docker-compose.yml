@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  webserver:
+    build: ./docker/webserver
+    #build: .
+    #command: npm run start
+    #command: service apache2 restart
+    volumes:
+      - ./:/var/www/html/
+    ports:
+      - "8080:80"
+      - "4433:443"
