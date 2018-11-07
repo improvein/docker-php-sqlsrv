@@ -1,10 +1,10 @@
 FROM ubuntu:16.04
 
-# Env variable for the project root dir
+# env variable for the project root dir
 ENV PROJECT_ROOT /var/www/html
 ENV DEBIAN_FRONTEND=noninteractive
 
-MAINTAINER Leandro Ponce (leandro.ponce@improvein.com/ponce.leandro@outlook.com)
+LABEL maintainer="Leandro Ponce (leandro.ponce@improvein.com/ponce.leandro@outlook.com)"
 
 # update package list
 RUN apt-get update
@@ -16,7 +16,7 @@ RUN apt-get install -y curl git
 RUN apt-get install -y apache2
 
 # install php
-RUN apt-get -y install php7.0 mcrypt php7.0-mcrypt php-mbstring php-pear php7.0-dev php7.0-xml
+RUN apt-get -y install php7.0 mcrypt php7.0-mcrypt php-mbstring php-pear php7.0-dev php7.0-xml php7.0-zip
 RUN apt-get install -y libapache2-mod-php7.0
 
 # install pre requisites
@@ -48,11 +48,14 @@ RUN exec bash
 # install locales
 RUN apt-get install -y locales && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 
-# Custom configurations
+# custom configurations
 COPY apache2.conf /etc/apache2/apache2.conf
 
-# Permissions on app directories
+# permissions on app directories
 RUN usermod -u 1000 www-data
+
+# install composer
+COPY --from=composer:1.5 /usr/bin/composer /usr/bin/composer
 
 WORKDIR $PROJECT_ROOT
 
